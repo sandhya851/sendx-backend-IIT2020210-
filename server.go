@@ -1,10 +1,9 @@
 package server
 
 import (
-	"encoding/json" 
+	"encoding/json"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/yourusername/web-crawler/crawler"
@@ -22,49 +21,57 @@ func NewServer(c *crawler.Crawler) *Server {
 
 func (s *Server) CrawlHandler(w http.ResponseWriter, r *http.Request) {
 	url := r.URL.Query().Get("url")
+	if url == "" {
+		jsonResponse(w, http.StatusBadRequest, map[string]string{"error": "Invalid URL"})
+		return
+	}
+
 	payingCustomerParam := r.URL.Query().Get("paying_customer")
-	isPayingCustomer, _ := strconv.ParseBool(payingCustomerParam)
+	isPayingCustomer, err := strconv.ParseBool(payingCustomerParam)
+	if err != nil {
+		jsonResponse(w, http.StatusBadRequest, map[string]string{"error": "Invalid paying_customer parameter"})
+		return
+	}
 
 	results := s.Crawler.Crawl([]string{url}, isPayingCustomer, 1)
 	jsonResponse(w, http.StatusOK, results[url])
 }
 
-
 func (s *Server) SetWorkerCountHandler(w http.ResponseWriter, r *http.Request) {
-	// Parse request body to get the desired number of workers
 	var request struct {
 		NumWorkers int `json:"num_workers"`
 	}
-	err := json.NewDecoder(r.Body).Decode(&request)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		jsonResponse(w, http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
 		return
 	}
 
-	// Set the number of crawler workers
-	s.Crawler.SetNumWorkers(request.NumWorkers)
+	if request.NumWorkers <= 0 {
+		jsonResponse(w, http.StatusBadRequest, map[string]string{"error": "Invalid number of workers"})
+		return
+	}
 
+	s.Crawler.SetNumWorkers(request.NumWorkers)
 	jsonResponse(w, http.StatusOK, map[string]string{"message": "Number of workers updated successfully"})
 }
 
 func (s *Server) SetCrawlSpeedHandler(w http.ResponseWriter, r *http.Request) {
-	// Parse request body to get the desired crawl speed (pages per hour per worker)
 	var request struct {
 		CrawlSpeed int `json:"crawl_speed"`
 	}
-	err := json.NewDecoder(r.Body).Decode(&request)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		jsonResponse(w, http.StatusBadRequest, map[string]string{"error": "Invalid request body"})
 		return
 	}
 
-	// Set the crawl speed per hour per worker
-	s.Crawler.SetCrawlSpeed(request.CrawlSpeed)
+	if request.CrawlSpeed <= 0 {
+		jsonResponse(w, http.StatusBadRequest, map[string]string{"error": "Invalid crawl speed"})
+		return
+	}
 
+	s.Crawler.SetCrawlSpeed(request.CrawlSpeed)
 	jsonResponse(w, http.StatusOK, map[string]string{"message": "Crawl speed updated successfully"})
 }
-
-
 
 func jsonResponse(w http.ResponseWriter, statusCode int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
