@@ -1,0 +1,49 @@
+package storage
+
+import (
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+)
+
+func SaveCrawledData(url, content string) error {
+	err := createDataDirectory()
+	if err != nil {
+		return err
+	}
+
+	filePath := getFilePath(url)
+	err = ioutil.WriteFile(filePath, []byte(content), 0644)
+	if err != nil {
+		return fmt.Errorf("error saving crawled data: %v", err)
+	}
+
+	return nil
+}
+
+func GetCrawledData(url string) (string, error) {
+	filePath := getFilePath(url)
+	content, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return "", fmt.Errorf("error reading crawled data: %v", err)
+	}
+
+	return string(content), nil
+}
+
+func createDataDirectory() error {
+	err := os.MkdirAll("data", os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("error creating data directory: %v", err)
+	}
+	return nil
+}
+
+func getFilePath(url string) string {
+	return filepath.Join("data", urlToFileName(url))
+}
+
+func urlToFileName(url string) string {
+	return fmt.Sprintf("%x.txt", url) // Convert URL to a unique filename
+}
