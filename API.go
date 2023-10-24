@@ -1,9 +1,11 @@
+// api/api.go
 package api
 
 import (
 	"fmt"
 	"net/http"
 	"strings"
+
 	"github.com/PuerkitoBio/goquery"
 	"github.com/yourusername/web-crawler/storage"
 )
@@ -77,4 +79,41 @@ func fetchURLContent(url string) (string, error) {
 	})
 
 	return content.String(), nil
+}
+
+// api/api_test.go
+package api
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+)
+
+func TestCrawlHandler(t *testing.T) {
+	// Create a new request to the /crawl endpoint
+	req, err := http.NewRequest("GET", "/crawl?url=https://example.com", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a ResponseRecorder (which satisfies http.ResponseWriter) to record the response
+	rr := httptest.NewRecorder()
+
+	// Create an HTTP handler from the CrawlHandler function
+	handler := http.HandlerFunc((&API{}).CrawlHandler)
+
+	// Call the handler's ServeHTTP method to handle the request
+	handler.ServeHTTP(rr, req)
+
+	// Check the status code of the response
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	// Check the response body (assuming your handler returns a specific response for success)
+	expectedResponse := "Crawling successful"
+	if rr.Body.String() != expectedResponse {
+		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expectedResponse)
+	}
 }
