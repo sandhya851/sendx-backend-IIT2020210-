@@ -1,0 +1,49 @@
+package storage
+
+import (
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strings"
+)
+
+// SaveCrawledData saves the crawled data to a file.
+func SaveCrawledData(url, content string) error {
+	err := os.MkdirAll("crawled_data", os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("failed to create data directory: %v", err)
+	}
+
+	filePath := filepath.Join("crawled_data", generateFileName(url))
+	err = ioutil.WriteFile(filePath, []byte(content), 0644)
+	if err != nil {
+		return fmt.Errorf("failed to write data to file: %v", err)
+	}
+
+	return nil
+}
+
+// GetCrawledData retrieves the crawled data from a file.
+func GetCrawledData(url string) (string, error) {
+	filePath := filepath.Join("crawled_data", generateFileName(url))
+	content, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read data from file: %v", err)
+	}
+
+	return string(content), nil
+}
+
+// generateFileName generates a unique file name for the given URL.
+func generateFileName(url string) string {
+	// Convert URL to a valid file name by replacing non-alphanumeric characters with underscores
+	fileName := strings.Map(func(r rune) rune {
+		if r >= 'A' && r <= 'Z' || r >= 'a' && r <= 'z' || r >= '0' && r <= '9' {
+			return r
+		}
+		return '_'
+	}, url)
+
+	return fileName + ".txt"
+}
