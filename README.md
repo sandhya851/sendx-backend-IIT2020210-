@@ -60,6 +60,5 @@ The Web Crawler Application enables users to input a URL and retrieve the crawle
   
 - Implement robust security configurations and validations, especially for user input.
 
-Feel free to explore and enhance the application to meet specific requirements.
 
 ---
