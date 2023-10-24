@@ -6,10 +6,16 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 )
+
+var mu sync.Mutex
 
 // SaveCrawledData saves the crawled data to a file.
 func SaveCrawledData(url, content string) error {
+	mu.Lock()
+	defer mu.Unlock()
+
 	err := os.MkdirAll("crawled_data", os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("failed to create data directory: %v", err)
@@ -21,16 +27,25 @@ func SaveCrawledData(url, content string) error {
 		return fmt.Errorf("failed to write data to file: %v", err)
 	}
 
+	// Optionally, log success here
+	// log.Printf("Crawled data saved successfully for URL: %s", url)
+
 	return nil
 }
 
 // GetCrawledData retrieves the crawled data from a file.
 func GetCrawledData(url string) (string, error) {
+	mu.Lock()
+	defer mu.Unlock()
+
 	filePath := filepath.Join("crawled_data", generateFileName(url))
 	content, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to read data from file: %v", err)
 	}
+
+	// Optionally, log success here
+	// log.Printf("Crawled data retrieved successfully for URL: %s", url)
 
 	return string(content), nil
 }
