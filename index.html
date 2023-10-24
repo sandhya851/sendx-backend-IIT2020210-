@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Crawler</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #D6EAF8;
+        }
+
+        .container {
+            text-align: center;
+            background-color:#D6EAF8;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 5px 5px 20px 5px rgba(0, 0, 0, 0.2);
+            max-width: 400px;
+            width: 80%;
+        }
+
+        .container h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #154360  ;
+        }
+
+        .form__group {
+            position: relative;
+            margin-bottom: 20px;
+            text-align: left; /* Align the text to the left */
+        }
+
+        .form__field {
+            font-family: inherit;
+            width: 100%;
+            
+            border: 0;
+            border-bottom: 1.5px solid #17202A  ;
+            outline: 0;
+            font-size: 1.3rem;
+            color: #17202A ; /* Set the color of the input box */
+            padding: 6px 0;
+            background: transparent;
+            transition: border-color 0.2s;
+        }
+
+        .form__field::placeholder {
+            color: transparent;
+        }
+
+        .form__label {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transition: 0.2s;
+            font-size: 1rem;
+            color:#17202A  ;
+        }
+
+        .form__field:focus ~ .form__label,
+        .form__field:not(:placeholder-shown) ~ .form__label {
+            position: absolute;
+            top: -20px; /* Adjust the label position above the input line */
+            left: 0;
+            transition: 0.2s;
+            font-size: 1rem;
+            color:#17202A ;
+        }
+
+        .form__field:focus {
+            padding-bottom: 3px;
+            border-width: 3px;
+            border-image: linear-gradient(to right, #17202A   , #17202A  );
+            border-image-slice: 1; 
+        }
+
+        /* reset input */
+        .form__field:required, .form__field:invalid {
+            box-shadow: none;
+        }
+
+        /* ---------- Useful Button styling ---------- */
+        #crawlButton {
+            position: relative;
+            background-color: #17202A  ; /* Button color */
+            border-radius: 4em;
+            font-size: 17px;
+            color: #5D6D7E; 
+             border: 2px solid #273746; 
+            padding: 0.8em 2em; /* Adjusted padding */
+            cursor: pointer;
+            user-select: none;
+            text-align: center;
+            text-decoration: none;
+            cursor: pointer;
+            transition-duration: 0.4s;
+            -webkit-transition-duration: 0.4s; /* Safari */
+        }
+
+        #crawlButton:hover {
+            transition-duration: 0.1s;
+            background-color: #273746  ;
+        }
+
+        #crawlButton:after {
+            content: "";
+            display: block;
+            position: absolute;
+            border-radius: 2em;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: all 0.5s; 
+            box-shadow: 0 0 20px 20px   ; 
+        }
+
+        #crawlButton:active:after {
+            box-shadow: 0 0 0 0   ;
+            position: absolute;
+            border-radius: 4em;
+            left: 0;
+            top: 0;
+            opacity: 1;
+            transition: 0s;
+        }
+
+        #crawlButton:active {
+            top: 1px;
+        } 
+        .form__checkbox {
+            display: none;
+        }
+
+        .form__checkbox-label {
+            position: relative;
+            cursor: pointer;
+            padding-left: 37px;
+         
+            user-select: none;
+            color: #17202A;
+        }
+
+        .form__checkbox-label:before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 25px;
+            height: 25px;
+            border: 2px solid #17202A;
+            background-color: #D6EAF8;
+        }
+
+        .form__checkbox:checked + .form__checkbox-label:before {
+            background-color: #17202A;
+        }
+
+        .form__checkbox:checked + .form__checkbox-label:after {
+            content: "\2713";
+            font-size: 20px;
+            position: absolute;
+            top: 3px;
+            left: 7px;
+            color: #D6EAF8;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>URL Crawler</h1>
+        <div class="form__group">
+            <input type="input" class="form__field" placeholder=" " name="url" id='url' required />
+            <label for="url" class="form__label">URL</label>
+        </div>
+        
+        <div class="form__group">
+            <input type="checkbox" class="form__checkbox" id="payingCustomer">
+            <label for="payingCustomer" class="form__checkbox-label">Paying Customer</label>
+        </div>
+        
+        <br>
+        <button id="crawlButton">Crawl</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        document.getElementById('crawlButton').addEventListener('click', function () {
+            var url = document.getElementById('url').value;
+            fetch('/crawl?url=' + encodeURIComponent(url))
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('result').textContent = data;
+                })
+                .catch(error => { 
+                    console.error('Error:', error); 
+                });
+        });
+    </script>
+</body>
+
+</html>
