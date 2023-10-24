@@ -1,6 +1,4 @@
 # sendx-backend-IIT2020210-
-Certainly! Here's the revised version of the README file:
-
 ---
 
 # Web Crawler Application
