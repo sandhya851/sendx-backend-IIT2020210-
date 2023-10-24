@@ -1,19 +1,23 @@
-# Binaries for programs and plugins
+# Ignore binary executables and files
 *.exe
-*.exe~
+*.out
 *.dll
 *.so
 *.dylib
 
-# Test binary, built with `go test -c`
-*.test
-
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
-
-# Dependency directories
+# Ignore dependency directories
 vendor/
+node_modules/
 
-# Optional editor specific files
+# Ignore IDE or editor-specific files
 .idea/
 .vscode/
+
+# Ignore log files
+*.log
+
+# Ignore binary files
+*.gz
+
+# Ignore Go binary
+web-crawler
