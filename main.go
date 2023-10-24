@@ -16,6 +16,17 @@ import (
 )
 
 func main() {
+	// Initialize logger
+	logFile, err := os.Create("app.log")
+	if err != nil {
+		log.Fatal("Error creating log file:", err)
+	}
+	defer logFile.Close()
+
+	logger := log.New(io.MultiWriter(os.Stdout, logFile), "web-crawler: ", log.Ldate|log.Ltime|log.Lshortfile)
+
+	logger.Println("Server started")
+
 	// Initialize flags for command line options
 	port := flag.Int("port", 8080, "HTTP server port")
 	numWorkers := flag.Int("workers", 5, "Number of crawler workers")
@@ -24,17 +35,8 @@ func main() {
 	// Parse the HTML template
 	tmpl, err := template.ParseFiles("templates/index.html")
 	if err != nil {
-		log.Fatal("Error parsing template:", err)
+		logger.Fatal("Error parsing template:", err)
 	}
-
-	// Initialize logger
-	logFile, err := os.Create("app.log")
-	if err != nil {
-		log.Fatal("Error creating log file:", err)
-	}
-	defer logFile.Close()
-
-	logger := log.New(logFile, "", log.Ldate|log.Ltime|log.Lshortfile)
 
 	// Initialize Crawler, Server, and API instances
 	c := crawler.NewCrawler(*numWorkers)
