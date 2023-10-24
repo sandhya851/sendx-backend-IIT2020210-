@@ -1,26 +1,58 @@
-// api/api.go
-package api
+ package api
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/yourusername/web-crawler/storage"
+	"golang.org/x/time/rate"
 )
 
 type API struct {
-	// You can add any necessary fields here
+	limiter *rate.Limiter
 }
 
 func NewAPI() *API {
-	return &API{}
+	// Allow 100 requests per second with burst of 1 request.
+	return &API{
+		limiter: rate.NewLimiter(rate.Limit(100), 1),
+	}
 }
 
 func (a *API) CrawlHandler(w http.ResponseWriter, r *http.Request) {
+	// Apply rate limiting
+	if err := a.limiter.Wait(r.Context()); err != nil {
+		http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
+		return
+	}
+
+	// For POST requests, retrieve the URL from the form data
+	if r.Method == http.MethodPost {
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "Failed to parse form data", http.StatusBadRequest)
+			return
+		}
+		url := r.Form.Get("url")
+		// URL validation and sanitization can be added here if needed.
+		crawlURL(w, r, url)
+		return
+	}
+
+	// For GET requests, retrieve the URL from the query parameter
 	url := r.URL.Query().Get("url")
-	content, err := storage.GetCrawledData(generateFileName(url))
+	crawlURL(w, r, url)
+}
+
+func crawlURL(w http.ResponseWriter, r *http.Request, url string) {
+	// Convert URL to a valid file name by replacing non-alphanumeric characters with underscores
+	fileName := generateFileName(url)
+
+	content, err := storage.GetCrawledData(fileName)
 	if err == nil {
 		// Data found in storage, return it
 		fmt.Fprint(w, content)
@@ -28,15 +60,17 @@ func (a *API) CrawlHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Data not found, crawl in real-time
-	crawledContent, err := fetchURLContent(url)
+	crawledContent, err := fetchURLContent(url, r.Context())
 	if err != nil {
+		log.Println("Error fetching URL:", err)
 		http.Error(w, "Failed to crawl the URL", http.StatusInternalServerError)
 		return
 	}
 
 	// Save crawled data to storage
-	err = storage.SaveCrawledData(generateFileName(url), crawledContent)
+	err = storage.SaveCrawledData(fileName, crawledContent)
 	if err != nil {
+		log.Println("Error saving crawled data:", err)
 		http.Error(w, "Failed to save crawled data", http.StatusInternalServerError)
 		return
 	}
@@ -55,9 +89,14 @@ func generateFileName(url string) string {
 	}, url) + ".txt"
 }
 
-func fetchURLContent(url string) (string, error) {
-	// Implement logic to crawl the URL and fetch content
-	resp, err := http.Get(url)
+func fetchURLContent(url string, ctx context.Context) (string, error) {
+	// Implement logic to crawl the URL and fetch content with context handling
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -81,21 +120,20 @@ func fetchURLContent(url string) (string, error) {
 	return content.String(), nil
 }
 
-// api/api_test.go
-package api
-
-import (
-	"net/http"
-	"net/http/httptest"
-	"testing"
-)
-
 func TestCrawlHandler(t *testing.T) {
-	// Create a new request to the /crawl endpoint
-	req, err := http.NewRequest("GET", "/crawl?url=https://example.com", nil)
+	// Create a form values map with the URL input
+	form := url.Values{}
+	form.Add("url", "https://example.com")
+
+	// Encode the form values into the request body
+	reqBody := form.Encode()
+
+	// Create a new request to the /crawl endpoint with the form values in the body
+	req, err := http.NewRequest("POST", "/crawl", strings.NewReader(reqBody))
 	if err != nil {
 		t.Fatal(err)
 	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	// Create a ResponseRecorder (which satisfies http.ResponseWriter) to record the response
 	rr := httptest.NewRecorder()
