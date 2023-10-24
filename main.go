@@ -1,41 +1,75 @@
 package main
 
 import (
-    "html/template"
-    "log"
-    "net/http"
-    "github.com/yourusername/web-crawler/crawler"
-    "github.com/yourusername/web-crawler/server"
-    "github.com/yourusername/web-crawler/api"
+	"flag"
+	"fmt"
+	"html/template"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+
+	"github.com/yourusername/web-crawler/crawler"
+	"github.com/yourusername/web-crawler/server"
+	"github.com/yourusername/web-crawler/api"
 )
 
 func main() {
-    // Parse the HTML template
-    tmpl, err := template.ParseFiles("templates/index.html")
-    if err != nil {
-        log.Fatal("Error parsing template:", err)
-    }
+	// Initialize flags for command line options
+	port := flag.Int("port", 8080, "HTTP server port")
+	numWorkers := flag.Int("workers", 5, "Number of crawler workers")
+	flag.Parse()
 
-    // Initialize Crawler, Server, and API instances
-    c := crawler.NewCrawler()
-    s := server.NewServer(c)
-    a := api.NewAPI()
+	// Parse the HTML template
+	tmpl, err := template.ParseFiles("templates/index.html")
+	if err != nil {
+		log.Fatal("Error parsing template:", err)
+	}
 
-    // Handle static files (CSS, JS, images, etc.)
-    http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	// Initialize logger
+	logFile, err := os.Create("app.log")
+	if err != nil {
+		log.Fatal("Error creating log file:", err)
+	}
+	defer logFile.Close()
 
-    // Handle the root URL with the parsed template
-    http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-        // Execute the template, passing nil as data
-        tmpl.Execute(w, nil)
-    })
+	logger := log.New(logFile, "", log.Ldate|log.Ltime|log.Lshortfile)
 
-    // Set up API routes
-    http.HandleFunc("/crawl", a.CrawlHandler)
-    // Add other API endpoints if needed
-    http.HandleFunc("/set-worker-count", s.SetWorkerCountHandler)
-    http.HandleFunc("/set-crawl-speed", s.SetCrawlSpeedHandler)
+	// Initialize Crawler, Server, and API instances
+	c := crawler.NewCrawler(*numWorkers)
+	s := server.NewServer(c)
+	a := api.NewAPI()
 
-    // Start the HTTP server
-    http.ListenAndServe(":8080", nil)
+	// Handle static files (CSS, JS, images, etc.)
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+
+	// Handle the root URL with the parsed template
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Execute the template, passing nil as data
+		tmpl.Execute(w, nil)
+	})
+
+	// Set up API routes
+	http.HandleFunc("/crawl", a.CrawlHandler)
+	// Add other API endpoints if needed
+	http.HandleFunc("/set-worker-count", s.SetWorkerCountHandler)
+	http.HandleFunc("/set-crawl-speed", s.SetCrawlSpeedHandler)
+
+	// Start the HTTP server
+	go func() {
+		err := http.ListenAndServe(fmt.Sprintf(":%d", *port), nil)
+		if err != nil {
+			logger.Fatalf("Error starting server: %v", err)
+		}
+	}()
+
+	logger.Printf("Server started on port %d\n", *port)
+
+	// Handle graceful shutdown
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	<-sigCh
+
+	logger.Println("Shutting down server...")
 }
