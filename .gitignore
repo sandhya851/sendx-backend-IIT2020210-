@@ -1,34 +1,19 @@
-# Compiled Object files, Static and Dynamic libs (Shared Objects)
-*.o
-*.a
-*.so
-
-# Compiled Go binary
+# Binaries for programs and plugins
 *.exe
-*.out
-*.app
+*.exe~
+*.dll
+*.so
+*.dylib
 
-# Build output
-/build/
-
-# Ignore the go bin and vendor directories
-/bin/
-/vendor/
-
-# Dependency directories (created by `go get`)
-/Godeps/
-/vendor/
+# Test binary, built with `go test -c`
+*.test
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
-# Ignore any local config files
+# Dependency directories
+vendor/
+
+# Optional editor specific files
 .idea/
 .vscode/
-*.sublime-workspace
-
-# Ignore macOS directory settings
-.DS_Store
-
-# Ignore JetBrains GoLand files
-.idea/
