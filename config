@@ -4,18 +4,23 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath" 
+	"path/filepath"
+	"strings"
+	"sync"
 )
 
+var mu sync.Mutex
+
 func SaveCrawledData(url, content string) error {
-	err := createDataDirectory()
-	if err != nil {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if err := createDataDirectory(); err != nil {
 		return err
 	}
 
 	filePath := getFilePath(url)
-	err = ioutil.WriteFile(filePath, []byte(content), 0644)
-	if err != nil {
+	if err := ioutil.WriteFile(filePath, []byte(content), 0644); err != nil {
 		return fmt.Errorf("error saving crawled data: %v", err)
 	}
 
@@ -23,6 +28,9 @@ func SaveCrawledData(url, content string) error {
 }
 
 func GetCrawledData(url string) (string, error) {
+	mu.Lock()
+	defer mu.Unlock()
+
 	filePath := getFilePath(url)
 	content, err := ioutil.ReadFile(filePath)
 	if err != nil {
@@ -41,9 +49,17 @@ func createDataDirectory() error {
 }
 
 func getFilePath(url string) string {
-	return filepath.Join("data", urlToFileName(url))
+	// Sanitize the URL to prevent directory traversal attacks
+	safeURL := sanitizeURL(url)
+	return filepath.Join("data", safeURL+".txt")
 }
 
-func urlToFileName(url string) string {
-	return fmt.Sprintf("%x.txt", url) // Convert URL to a unique filename
+func sanitizeURL(url string) string {
+	// Replace non-alphanumeric characters with underscores
+	return strings.Map(func(r rune) rune {
+		if r >= 'A' && r <= 'Z' || r >= 'a' && r <= 'z' || r >= '0' && r <= '9' {
+			return r
+		}
+		return '_'
+	}, url)
 }
